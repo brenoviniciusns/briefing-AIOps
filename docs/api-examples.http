@@ -6,7 +6,7 @@
 @key = <function_key>
 
 ### check-id (GET)
-GET {{base}}/api/check-id?id=<sha256_hex_64>&source=openai&published_date=2026-04-05
+GET {{base}}/api/check-id?id=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa&source=openai&published_date=2026-04-05
 x-functions-key: {{key}}
 
 ### check-id (POST)
@@ -15,7 +15,7 @@ Content-Type: application/json
 x-functions-key: {{key}}
 
 {
-  "id": "<sha256_hex_64>",
+  "id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
   "source": "openai",
   "published_date": "2026-04-05"
 }

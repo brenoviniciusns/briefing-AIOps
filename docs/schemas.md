@@ -1,6 +1,6 @@
 # Esquemas de dados
 
-Contexto e defaults atuais: [estado-atual-pipeline.md](estado-atual-pipeline.md).
+Contexto e defaults atuais: [estado-atual-pipeline.md](estado-atual-pipeline.md). Pedidos HTTP de exemplo: [api-examples.http](api-examples.http) e pasta [`examples/`](../examples/) (validados em pytest — ver [TESTING.md](TESTING.md)).
 
 ## RAW (ADLS Gen2, contentor `raw`)
 

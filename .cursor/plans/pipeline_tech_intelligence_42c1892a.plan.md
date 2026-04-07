@@ -1,6 +1,6 @@
 ---
 name: Pipeline Tech Intelligence
-overview: Pipeline diário RSS → ADLS Gen2 → Azure Functions (Python) + Azure OpenAI → n8n, com janela de ingestão de 30 dias civis UTC (fim = ontem), relatório diário com top 3 assuntos LinkedIn (match ao perfil em agents/audience-profile-linkedin.md), anti-repetição de artigos via blob de ids, idempotência SHA256(URL), e workflows exportáveis.
+overview: "Histórico Cursor: plano inicial (janela longa, top-3 LinkedIn). Spec atual: D-1 UTC + lookback_days default 1 + LinkedIn 3+1 — ver docs/estado-atual-pipeline.md."
 todos:
   - id: infra-bicep
     content: Criar infra/bicep modular (storage ADLS, KV, OpenAI, Function+AppInsights) sem roleAssignments; docs rbac-manual + deployment
@@ -9,7 +9,7 @@ todos:
     content: "Implementar function-app Python: /check-id, /process, /report opcional; ADLS raw list + Delta MERGE; Azure OpenAI; logging/retries"
     status: completed
   - id: n8n-workflows
-    content: Workflows n8n (cron UTC, janela 30d, check-id, upload raw, POST /process com lookback_days, entrega com secção LinkedIn)
+    content: Workflows n8n (cron UTC, janela D-1 UTC, check-id, upload raw, POST /process, entrega com secção LinkedIn)
     status: completed
   - id: docs-schemas
     content: Adicionar docs/schemas.md e docs/api-examples com formatos RAW, Delta, report e exemplos de request/response
@@ -17,13 +17,13 @@ todos:
 isProject: false
 ---
 
-> **Histórico Cursor:** várias secções abaixo descrevem o desenho **inicial** (ex.: janela 30d, top 3 LinkedIn). O estado **canónico** em produção está em [`docs/estado-atual-pipeline.md`](../../docs/estado-atual-pipeline.md).
+> **Histórico Cursor:** o corpo deste ficheiro é **arquivo** (inclui janela 30d e `lookback_days: 30` em algumas linhas). **Não usar como especificação.** O contrato congelado e a matriz de artefactos estão em [`docs/estado-atual-pipeline.md`](../../docs/estado-atual-pipeline.md).
 
 # Plano: Daily Tech Intelligence Pipeline (Azure + n8n + Python)
 
 ## Contexto do repositório
 
-- O workspace [C:\Projetos\briefing-AIOps](C:\Projetos\briefing-AIOps) está sem código IaC/Functions ainda; este plano define a árvore de ficheiros e a implementação a gerar **após** aprovação.
+- O repositório contém implementação; este ficheiro conserva o **plano original** do Cursor para contexto. Decisões posteriores (D-1, 3+1 LinkedIn) estão em `docs/estado-atual-pipeline.md`.
 - Seguir [`.cursor/rules/agent-azure-platform.mdc`](C:\Projetos\briefing-AIOps\.cursor\rules\agent-azure-platform.mdc): **Bicep modular**, **sem** recursos `Microsoft.Authorization/roleAssignments` no IaC; documentar em `docs/rbac-manual.md` as atribuições necessárias para um administrador (MI da Function: *Storage Blob Data Contributor* no storage, *Key Vault Secrets User* no KV, *Cognitive Services OpenAI User* no Azure OpenAI, se usar RBAC no recurso). Até lá, modo operacional com **connection string / keys** em App Settings (Contributor-friendly), sem commit de segredos no Git.
 
 ## Arquitetura lógica
@@ -66,7 +66,7 @@ flowchart TB
   FETCH --> HTML --> SEND
 ```
 
-**Decisão de desenho (robustez):** a janela de **30 dias** aplica-se ao **`published_at` em UTC** (fechada em «ontem»); o `/process` agrega várias partições diárias. Particionamento RAW continua por **data de publicação (UTC)** do item.
+**(Histórico — descontinuado como produto):** aqui falava-se em janela de **30 dias** no `published_at`. **Produção:** só **D-1 UTC** na ingestão; `POST /process` com **`lookback_days` default 1** (dias maiores só para reprocessar várias partições RAW).
 
 **Idempotência:** `id = sha256(url)` (hex minúsculo, canónico). Antes de gravar RAW, `/check-id` verifica se já existe blob em `raw/.../source=SOURCE/{id}.json` (HEAD/list) **ou** entrada numa tabela Delta auxiliar `idempotency/ids` (opcional; o plano base usa **existência de blob** como fonte de verdade para ingestão, e **MERGE** no Delta `processed` para escrita idempotente no processamento). Isto cumpre “skip se existe” sem depender de scraping.
 
@@ -102,7 +102,7 @@ flowchart TB
 | Rota | Método | Comportamento |
 |------|--------|---------------|
 | `/api/check-id` | GET ou POST | Input: `id`, opcional `source`, `published_date` (para construir prefixo). Usa `DataLakeServiceClient` + `get_file_client` ou listagem por padrão; resposta JSON `{ "exists": bool }`. |
-| `/api/process` | POST | Body: `{ "date": "YYYY-MM-DD", "lookback_days": 30 }` (`date` = fim da janela, tipicamente ontem UTC). Passos: para cada dia entre `date − (lookback_days−1)` e `date`, listar RAW; dedupe por `id`; classificação + score + resumo LLM; **MERGE** Delta; **LinkedIn top-3** (excl. ids em `linkedin-featured-article-ids.json`); insights executivos; `reports/daily-report-{date}.json`. |
+| `/api/process` | POST | Body: `{ "date": "YYYY-MM-DD", "lookback_days": 1 }` em corridas normais (`date` = ontem UTC). Passos: para cada dia entre `date − (lookback_days−1)` e `date`, listar RAW; dedupe por `id`; classificação + score + resumo LLM; **MERGE** Delta; **LinkedIn 3+1** (excl. ids em `linkedin-featured-article-ids.json`); insights executivos; `reports/daily-report-{date}.json`. |
 | Opcional `/api/report` | GET | `?date=YYYY-MM-DD` — devolve JSON do relatório de `reports/` (para Workflow 2 n8n sem credenciais de storage, usando function key). |
 
 **Dependências Python principais:** `azure-storage-file-datalake`, `azure-identity`, `openai` (Azure), `deltalake`, `pyarrow`, `feedparser` *não* necessário na Function se o parse for só no n8n; `pydantic` para validação de payloads; `tenacity` para retries OpenAI.
@@ -131,7 +131,7 @@ flowchart TB
 - **Code node:** normalizar itens → `{ id, source, title, url, published_at, summary: description|content, ingested_at }` com `published_at` em ISO8601 UTC; **filtrar** itens onde `published_at` ∈ `[yesterday 00:00:00 UTC, yesterday 23:59:59.999 UTC]` (usar `DateTime` explícito; **não** janela móvel de 24h).
 - Para cada item: **HTTP** `GET/POST` Function `/api/check-id` — se `exists`, skip.
 - **Upload RAW:** nó **Azure Storage** (ou HTTP PUT com SAS) para `raw/year=.../month=.../day=.../source=SOURCE/{id}.json` com corpo JSON exatamente no formato pedido.
-- Após lote: **HTTP POST** `/api/process` com `{ "date": "<yesterday-UTC-date>", "lookback_days": 30 }`.
+- Após lote: **HTTP POST** `/api/process` com `{ "date": "<yesterday-UTC-date>", "lookback_days": 1, "archive": false }` (valores maiores só se reprocessares vários dias de RAW).
 
 **Credenciais n8n:** variáveis de ambiente (Function base URL + function key, storage SAS ou connection string fragment) — documentado em `docs/deployment.md`, sem valores no repo.
 

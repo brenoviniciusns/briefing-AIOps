@@ -6,6 +6,19 @@ Documento **canónico** para o comportamento em produção após endurecimento p
 
 Ingerir feeds RSS/APIs aprovados, gravar RAW no ADLS Gen2, processar com **Azure Functions (Python)** + **Azure OpenAI**, emitir relatório JSON e entregar **e-mail** + **Notion** (e Slack opcional) via **n8n**.
 
+## Congelamento de contrato e artefactos (matriz)
+
+Esta matriz substitui checklists antigos: indica **fonte de verdade** e o que ainda é **manual / integração**.
+
+| Área | Fonte de verdade | Automatizado | Ainda manual / futuro |
+|------|------------------|--------------|------------------------|
+| **HTTP `/check-id`, `/process`, forma do relatório** | `docs/schemas.md` + modelos Pydantic em `function-app/shared/models.py` + `examples/*.json` | `pytest` (`test_contract_examples.py`) valida `examples/`; validação cruzada com `docs/api-examples.http` | Chamadas HTTP reais à Function (Postman/curl) contra ambiente deployado |
+| **Comportamento runtime** | Código `function-app/` + workflows n8n exportados | Testes unitários em `function-app/tests/` (sem Azure) | Smoke n8n na instância ([phase-gates-checklist.md](phase-gates-checklist.md)) |
+| **Workflows n8n duplicados** | **Canónicos:** `n8n/workflow-ingestion.json`, `n8n/workflow-delivery.json`. **Espelho:** `n8n/workflows/*.json` via `scripts/sync_n8n_workflows.py` | Correr o script após editar os canónicos | Remover o espelho só quando a equipa fixar um único path de importação |
+| **AGENTS.md vs `agents/`** | **`AGENTS.md` (raiz):** índice para o Cursor. **`agents/`:** prompts, `CONTEXT.md`, fluxos Mermaid | N/A (papéis distintos) | Fundir num único sítio é opcional; não é requisito de contrato |
+| **Runbook / deploy** | **[runbook.md](runbook.md)** (incidentes, 504, segredos, backup ligeiro, testes, sync n8n). **[deployment.md](deployment.md)** (provisionamento) | — | Alertas App Insights: recomendado no runbook; regras no portal não estão versionadas no repo |
+| **Versão Git** | Tags `v0.1.0`, `v0.1.1` + histórico em `master`/`main` | — | Política de release da equipa |
+
 ## Janela temporal
 
 - **Ingestão:** apenas o **dia civil anterior em UTC** (`published_at` ∈ [D-1 00:00, D-1 23:59:59.999]).

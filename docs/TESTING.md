@@ -26,7 +26,7 @@ python -m pytest tests/ -v
 | `test_classification.py` | `classify_text`, `relevance_score` |
 | `test_report_enrich.py` | `enrich_linkedin_sources` (fonte no relatório LinkedIn) |
 | `test_linkedin_parse.py` | `_parse_linkedin_bundle` (validação JSON do bundle LinkedIn, sem chamar OpenAI) |
-| `test_contract_examples.py` | Ficheiros em **`examples/`** na raiz do repo (contrato alinhado a `ProcessBody`, `CheckIdParams`, chaves do relatório) |
+| `test_contract_examples.py` | Ficheiros em **`examples/`** na raiz (contrato alinhado a `ProcessBody`, `CheckIdParams`, chaves do relatório) e **corpos POST** idênticos aos de `docs/api-examples.http` |
 
 ## Fora de âmbito (testes manuais / integração)
 
