@@ -1,3 +1,6 @@
+### JSON de exemplo (contrato / pytest)
+# Ver pasta ../examples/ — alinhada a test_contract_examples.py
+
 ### Variáveis (ajustar)
 @base = https://<functionAppName>.azurewebsites.net
 @key = <function_key>

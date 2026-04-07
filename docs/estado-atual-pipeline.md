@@ -64,10 +64,10 @@ O ficheiro `.cursor/plans/pipeline_tech_intelligence_42c1892a.plan.md` reflete *
 
 ## Versão e Git
 
-Este diretório pode não ser um repositório Git ainda. Quando inicializares Git, recomenda-se:
+Repositório Git na raiz do projeto. Tag de referência pós-entrega: **`v0.1.0`** (commit inicial documentado).
 
 ```bash
-git tag -a v0.1.0 -m "Pipeline Daily Tech Intel — D-1, entrega pt-BR + Notion estruturado"
+git describe --tags
 ```
 
-Atualiza a tag após mudanças de contrato significativas.
+Para marcar nova versão após mudanças de contrato: `git tag -a v0.2.0 -m "…"`.
