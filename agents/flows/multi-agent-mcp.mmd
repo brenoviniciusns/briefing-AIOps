@@ -1,0 +1,36 @@
+%% Papéis de agentes, decisões e ferramentas MCP (recomendado no Cursor)
+
+flowchart LR
+  subgraph agents["Agentes lógicos"]
+    A0[Orquestrador]
+    A1[Ingestão n8n]
+    A2[Processamento Functions]
+    A3[Entrega n8n]
+  end
+
+  subgraph decisions["Gates"]
+    G1[Janela 30d UTC até ontem?]
+    G2[Idempotência SHA256 URL?]
+    G3[Artigos LinkedIn não repetidos?]
+    G4[Retry / DLQ humano]
+  end
+
+  subgraph mcp["MCP — uso sugerido"]
+    M1[Postman / contratos API]
+    M2[context7 — SDK Azure OpenAI]
+    M3[n8n MCP — workflows]
+    M4[Browser — pré-visualizar e-mail HTML]
+  end
+
+  A0 --> G1
+  A1 --> G1
+  A1 --> G2
+  A2 --> G2
+  A2 --> G3
+  A2 --> G4
+  A3 --> G4
+
+  A0 -.-> M1
+  A1 -.-> M3
+  A2 -.-> M2
+  A3 -.-> M4

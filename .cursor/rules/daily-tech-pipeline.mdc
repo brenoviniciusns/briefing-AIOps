@@ -1,0 +1,61 @@
+---
+description: Pipeline Tech Intelligence — janela D-1 UTC, relatório LinkedIn 3+1, idempotência, ADLS, n8n.
+globs:
+  - "function-app/**"
+  - "n8n/**"
+  - "infra/**"
+  - "schemas/**"
+  - "agents/**"
+alwaysApply: true
+---
+
+# Daily Tech Intelligence → LinkedIn (D-1 + bundle LinkedIn)
+
+> Este repositório pode conter **estrutura + parte da implementação** (Function, workflows exportados). Regras de produto abaixo são **obrigatórias** para novos desenvolvimentos. **Verdade operacional:** `docs/estado-atual-pipeline.md`.
+
+## Stack
+
+- **Azure**: Resource Group, Storage Account (Data Lake Gen2 / HNS), Function App (Python), Azure OpenAI, Key Vault.
+- **Orquestração**: n8n (ingestão + entrega).
+- **Processamento**: Azure Functions.
+
+## Janela temporal (crítico)
+
+- **Ingestão**: apenas itens cuja `published_at` (UTC) caia no **dia civil anterior** (D−1): **`[ontem 00:00:00 UTC, ontem 23:59:59.999 UTC]`** (intervalo fechado).
+- **Proibido** usar janela móvel de 24 h como definição de “ontem”.
+- **`POST /process`**: `date` = tipicamente **ontem UTC**; `lookback_days` **default 1**. Valores maiores só para ler várias partições RAW (reprocessamento).
+
+## Entrega diária — LinkedIn
+
+- **3 ganchos curtos** (`linkedin_short_topics`) + **1 tema detalhado** (`linkedin_deep_topic`); `linkedin_topics` espelha os ganchos. Foco audiência dados/plataforma; texto **pt-BR**; **fonte (feed)** identificável e ligação ao URL do artigo na entrega.
+- **Pontuação**: `profile_match_score` 0–100 conforme aderência ao perfil (`agents/audience-profile-linkedin.md`).
+- **Anti-repetição**: mesmo tema pode repetir; o mesmo **`id`** (artigo) não — blob `linkedin-featured-article-ids.json`.
+
+## Idempotência (RAW / Delta)
+
+- `id = SHA256(url)` em hexadecimal minúsculo.
+- Antes de gravar RAW ou processar: verificar existência via `/check-id`.
+- Persistir ids processados (marcadores em blob e/ou linhas Delta).
+
+## Fontes permitidas (allowlist, sem scraping HTML)
+
+Lista canónica: **`allowlist_rss.yaml`**. RSS + **Hacker News** (API Firebase). Código de referência: `n8n/snippets/ingestion-fetch-code.js`.
+
+## Layout ADLS Gen2
+
+- `/raw/year=YYYY/month=MM/day=DD/source=SOURCE/` — partição pela **data de publicação UTC** do item.
+- `/processed/` — tabela Delta.
+- `/reports/` — JSON do relatório diário + ficheiro opcional de histórico de artigos já usados para LinkedIn.
+
+## Segurança
+
+- Chaves OpenAI e credenciais de storage: **Key Vault** e/ou **Application Settings**; nunca em repositório.
+- Em subscrições só **Contributor**: ver `.cursor/rules/agent-azure-platform.mdc` (RBAC / connection strings).
+
+## Credencial n8n (HTTP Header Auth)
+
+- **Header Name** deve ser um token HTTP válido (ex.: **`x-functions-key`**), **não** o nome descritivo da credencial. Valor = function key.
+
+## Índice de agentes e prompts
+
+- Ver `agents/CONTEXT.md` e `agents/prompts/`.

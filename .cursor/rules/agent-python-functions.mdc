@@ -1,0 +1,16 @@
+---
+description: Agente especialista em Azure Functions Python (v2 model), OpenAI, ADLS, Delta.
+globs:
+  - "function-app/**"
+alwaysApply: false
+---
+
+# Agente — Azure Functions (Python)
+
+- Modelo de programação **v2** (`azure-functions` com `FunctionApp()`).
+- Endpoints REST: `/check-id`, `/process` com validação de input e respostas JSON estáveis.
+- Logging estruturado (`logging`) em todos os caminhos; erros HTTP com corpo JSON claro.
+- Chamadas Azure OpenAI: retries exponenciais (ex. `tenacity` ou loop controlado) para 429/5xx.
+- Storage: preferir `azure-identity` + `DefaultAzureCredential` **quando** a Managed Identity da Function tiver RBAC no Storage (após admin aplicar roles). Com **apenas Contributor** e sem essas atribuições, suportar **connection string** ou **account key** via App Settings / Key Vault reference (sem commitar em `local.settings.json` versionado).
+- Delta: usar pacote `deltalake` / PyArrow conforme `requirements.txt`; operações idempotentes (merge/append com dedup por `id`).
+- Manter módulos em `function-app/shared/` para classificação, scoring e cliente OpenAI.

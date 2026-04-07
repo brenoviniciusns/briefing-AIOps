@@ -1,0 +1,22 @@
+{
+  "date": "2026-04-05",
+  "lookback_days": 1,
+  "window_start": "2026-04-05",
+  "window_end": "2026-04-05",
+  "sections": {
+    "AI": [],
+    "Architecture": [],
+    "Data": []
+  },
+  "sources": [],
+  "linkedin_short_topics": [],
+  "linkedin_deep_topic": null,
+  "linkedin_topics": [],
+  "llm_insights": {
+    "key_insights": [],
+    "trends": [],
+    "important_changes": [],
+    "actionable_takeaways": []
+  },
+  "processing_run_id": "00000000-0000-0000-0000-000000000000"
+}

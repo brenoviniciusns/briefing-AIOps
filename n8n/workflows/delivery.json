@@ -1,0 +1,253 @@
+{
+  "name": "Daily Tech Intel — Entrega (LinkedIn + email / Slack)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "30 7 * * *"
+            }
+          ]
+        }
+      },
+      "id": "cron-delivery",
+      "name": "Cron 07h30 UTC",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "notes": "Executar após a ingestão/processamento (ex. 07:00 + margem). Ajustar conforme duração do /process."
+    },
+    {
+      "parameters": {
+        "jsCode": "const now = new Date();\nconst d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 1));\nreturn [{ json: { date: d.toISOString().slice(0, 10) } }];\n"
+      },
+      "id": "code-report-date",
+      "name": "Data relatório (fim janela UTC)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{$vars.FUNCTION_APP_URL}}/api/report",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "date",
+              "value": "={{ $json.date }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "http-report",
+      "name": "GET report",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        480,
+        0
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_ME",
+          "name": "Azure Function (x-functions-key)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const r = $input.first().json;\nconst esc = (s) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\n\n/** Link clicável “Fonte” → URL do artigo (validação). */\nfunction fmtFonteHtml(source, articleUrl) {\n  const u = String(articleUrl || '').trim();\n  const src = esc(String(source || 'artigo'));\n  if (!u) {\n    return source ? ` <small>(fonte: ${src})</small>` : '';\n  }\n  return ` <small>— <a href=\"${esc(u)}\">Fonte: ${src}</a></small>`;\n}\n\nconst sections = r.sections || {};\nconst cats = ['AI', 'Architecture', 'Data'];\nconst catLabels = { AI: 'IA', Architecture: 'Arquitetura', Data: 'Dados' };\n\nlet body = `<html><head><style>\nbody{font-family:Segoe UI,Arial,sans-serif;line-height:1.55;color:#222;max-width:720px;}\nh1{font-size:1.35rem;margin:0 0 1em 0;}\nh2{font-size:1.15rem;margin:2em 0 0.6em 0;padding-bottom:0.25em;border-bottom:1px solid #e0e0e0;}\nh3{font-size:1.05rem;margin:1.35em 0 0.4em 0;color:#333;}\n.topic-block{margin:0 0 1.75em 0;padding-bottom:1.25em;border-bottom:1px dashed #ddd;}\n.topic-block:last-of-type{border-bottom:none;}\np{margin:0.5em 0;}\nul{margin:0.4em 0 0.8em 1.2em;}\nhr.major{border:0;border-top:1px solid #ccc;margin:2em 0;}\n</style></head><body>`;\n\nbody += `<h1>Inteligência técnica — ${esc(r.date)}</h1>`;\n\nconst shorts = r.linkedin_short_topics || r.linkedin_topics || [];\nif (shorts.length) {\n  body += `<hr class=\"major\"/>`;\n  body += `<h2>LinkedIn — 3 ganchos rápidos</h2>`;\n  const sorted = [...shorts].sort((a, b) => (a.rank || 99) - (b.rank || 99));\n  sorted.forEach((t, idx) => {\n    const pa = t.primary_article || {};\n    const hook = esc(t.hook_line || t.angle_for_post || '');\n    body += `<div class=\"topic-block\">`;\n    body += `<h3>${esc(t.topic_label)}</h3>`;\n    body += `<p><strong>Match:</strong> ${esc(String(t.profile_match_score || ''))}/100</p>`;\n    body += `<p>${hook}</p>`;\n    body += `<p><a href=\"${esc(pa.url)}\">${esc(pa.title)}</a>${fmtFonteHtml(pa.source, pa.url)}</p>`;\n    const ex = t.extra_articles || [];\n    if (ex.length) {\n      body += `<p><small>Mais: ${ex.map((e) => `<a href=\"${esc(e.url)}\">${esc(e.title)}</a>${fmtFonteHtml(e.source, e.url)}`).join(' · ')}</small></p>`;\n    }\n    body += `</div>`;\n  });\n}\n\nconst deep = r.linkedin_deep_topic;\nif (deep && typeof deep === 'object' && deep.topic_label) {\n  body += `<hr class=\"major\"/>`;\n  body += `<h2>LinkedIn — tema em destaque (mais detalhe)</h2>`;\n  const pa = deep.primary_article || {};\n  body += `<div class=\"topic-block\">`;\n  body += `<h3>${esc(deep.topic_label)}</h3>`;\n  body += `<p><strong>Match:</strong> ${esc(String(deep.profile_match_score || ''))}/100</p>`;\n  body += `<p>${esc(deep.angle_for_post || '')}</p>`;\n  body += `<p><a href=\"${esc(pa.url)}\">${esc(pa.title)}</a>${fmtFonteHtml(pa.source, pa.url)}</p>`;\n  const ex = deep.extra_articles || [];\n  if (ex.length) {\n    body += `<p><small>Mais: ${ex.map((e) => `<a href=\"${esc(e.url)}\">${esc(e.title)}</a>${fmtFonteHtml(e.source, e.url)}`).join(' · ')}</small></p>`;\n  }\n  body += `</div>`;\n}\n\nconst ins = r.llm_insights || {};\nif (ins.key_insights && ins.key_insights.length) {\n  body += `<hr class=\"major\"/>`;\n  body += `<h2>Insights principais</h2><ul>`;\n  body += ins.key_insights.map((x) => `<li>${esc(x)}</li>`).join('');\n  body += `</ul>`;\n}\n\nfor (const c of cats) {\n  const items = sections[c] || [];\n  if (!items.length) continue;\n  body += `<hr class=\"major\"/>`;\n  body += `<h2>${esc(catLabels[c] || c)}</h2>`;\n  for (const it of items) {\n    body += `<div class=\"topic-block\">`;\n    body += `<h3>${esc(it.title)}</h3>`;\n    body += `<p><a href=\"${esc(it.url)}\">Abrir artigo</a>${fmtFonteHtml(it.source, it.url)}</p>`;\n    body += `<p style=\"color:#444\">${esc((it.summary || '').slice(0, 220))}</p>`;\n    body += `</div>`;\n  }\n}\n\nbody += `<hr class=\"major\"/>`;\nbody += `<p><small><strong>Fontes de dados (feeds / APIs):</strong> ${esc((r.sources || []).join(', ') || '—')}</small></p>`;\nif (r.window_start && r.window_end) {\n  body += `<p><small>Janela RAW: ${esc(r.window_start)} → ${esc(r.window_end)} (${esc(String(r.lookback_days || ''))} dia(s))</small></p>`;\n}\nbody += `</body></html>`;\n\n/** Texto para Slack / fallback Notion: preserva quebras; links como \"texto (url)\". */\nfunction htmlToReadablePlain(html) {\n  let t = String(html);\n  t = t.replace(/<\\/h1>/gi, '\\n\\n');\n  t = t.replace(/<\\/h2>/gi, '\\n\\n═══ ');\n  t = t.replace(/<\\/h3>/gi, '\\n\\n▸ ');\n  t = t.replace(/<\\/p>/gi, '\\n\\n');\n  t = t.replace(/<br\\s*\\/?>/gi, '\\n');\n  t = t.replace(/<\\/div>/gi, '\\n\\n');\n  t = t.replace(/<hr[^>]*>/gi, '\\n\\n────────\\n\\n');\n  t = t.replace(/<\\/li>/gi, '\\n');\n  t = t.replace(/<\\/ul>|<\\/ol>/gi, '\\n\\n');\n  t = t.replace(/<a\\s+[^>]*href=[\"']([^\"']+)[\"'][^>]*>([^<]*)<\\/a>/gi, '$2 ($1)');\n  t = t.replace(/<[^>]+>/g, '');\n  t = t.replace(/&nbsp;/g, ' ');\n  t = t.replace(/&amp;/g, '&');\n  t = t.replace(/&lt;/g, '<');\n  t = t.replace(/&gt;/g, '>');\n  t = t.replace(/\\n{3,}/g, '\\n\\n');\n  return t.trim();\n}\n\nconst MAX_NOTION = 100;\n\nfunction rt(content) {\n  return [{ type: 'text', text: { content: String(content || ' ').slice(0, 2000) } }];\n}\n\nfunction blkHeading2(text) {\n  return { object: 'block', type: 'heading_2', heading_2: { rich_text: rt(text) } };\n}\n\nfunction blkHeading3(text) {\n  return { object: 'block', type: 'heading_3', heading_3: { rich_text: rt(text) } };\n}\n\nfunction blkDivider() {\n  return { object: 'block', type: 'divider', divider: {} };\n}\n\nfunction blkParaPlain(text) {\n  const s = String(text || '');\n  const blocks = [];\n  for (let i = 0; i < s.length; i += 1900) {\n    blocks.push({\n      object: 'block',\n      type: 'paragraph',\n      paragraph: { rich_text: rt(s.slice(i, i + 1900)) },\n    });\n  }\n  return blocks.length ? blocks : [{ object: 'block', type: 'paragraph', paragraph: { rich_text: rt(' ') } }];\n}\n\nfunction blkParaArtigoComFonte(title, url, source) {\n  const u = String(url || '').trim();\n  const parts = [];\n  parts.push({ type: 'text', text: { content: 'Artigo: ' } });\n  if (u) {\n    parts.push({ type: 'text', text: { content: String(title || 'Abrir').slice(0, 1800), link: { url: u.slice(0, 1990) } } });\n  } else {\n    parts.push({ type: 'text', text: { content: String(title || '').slice(0, 1900) } });\n  }\n  if (source && u) {\n    parts.push({ type: 'text', text: { content: '  ·  Validar na fonte: ' } });\n    parts.push({\n      type: 'text',\n      text: { content: String(source).slice(0, 500), link: { url: u.slice(0, 1990) } },\n    });\n  }\n  return { object: 'block', type: 'paragraph', paragraph: { rich_text: parts } };\n}\n\nfunction blkBullet(text) {\n  return {\n    object: 'block',\n    type: 'bulleted_list_item',\n    bulleted_list_item: { rich_text: rt(text) },\n  };\n}\n\nfunction buildNotionChildren(rep) {\n  const out = [];\n  const push = (b) => {\n    if (out.length >= MAX_NOTION) return false;\n    if (Array.isArray(b)) {\n      for (const x of b) {\n        if (!push(x)) return false;\n      }\n      return true;\n    }\n    out.push(b);\n    return true;\n  };\n\n  push(blkHeading2(`Inteligência técnica — ${rep.date}`));\n  push(blkDivider());\n\n  const sh = rep.linkedin_short_topics || rep.linkedin_topics || [];\n  if (sh.length) {\n    push(blkHeading2('LinkedIn — 3 ganchos rápidos'));\n    const sorted = [...sh].sort((a, b) => (a.rank || 99) - (b.rank || 99));\n    sorted.forEach((t) => {\n      if (out.length >= MAX_NOTION - 8) return;\n      const pa = t.primary_article || {};\n      push(blkHeading3(String(t.topic_label || 'Assunto')));\n      push(blkParaPlain(`Match: ${t.profile_match_score ?? ''}/100`));\n      push(blkParaPlain(t.hook_line || t.angle_for_post || ''));\n      push(blkParaArtigoComFonte(pa.title, pa.url, pa.source));\n      const ex = t.extra_articles || [];\n      for (const e of ex) {\n        if (out.length >= MAX_NOTION - 2) break;\n        push(blkParaArtigoComFonte(e.title, e.url, e.source));\n      }\n      push(blkDivider());\n    });\n  }\n\n  const dp = rep.linkedin_deep_topic;\n  if (dp && typeof dp === 'object' && dp.topic_label && out.length < MAX_NOTION - 6) {\n    push(blkHeading2('LinkedIn — tema em destaque'));\n    push(blkHeading3(String(dp.topic_label)));\n    push(blkParaPlain(`Match: ${dp.profile_match_score ?? ''}/100`));\n    push(blkParaPlain(dp.angle_for_post || ''));\n    const pa = dp.primary_article || {};\n    push(blkParaArtigoComFonte(pa.title, pa.url, pa.source));\n    const ex = dp.extra_articles || [];\n    for (const e of ex) {\n      if (out.length >= MAX_NOTION - 2) break;\n      push(blkParaArtigoComFonte(e.title, e.url, e.source));\n    }\n    push(blkDivider());\n  }\n\n  const ins2 = rep.llm_insights || {};\n  if (ins2.key_insights && ins2.key_insights.length && out.length < MAX_NOTION - 5) {\n    push(blkHeading2('Insights principais'));\n    for (const x of ins2.key_insights) {\n      if (out.length >= MAX_NOTION - 1) break;\n      push(blkBullet(x));\n    }\n    push(blkDivider());\n  }\n\n  for (const c of cats) {\n    const items = (rep.sections || {})[c] || [];\n    if (!items.length) continue;\n    if (out.length >= MAX_NOTION - 3) break;\n    push(blkHeading2(catLabels[c] || c));\n    let n = 0;\n    for (const it of items) {\n      if (out.length >= MAX_NOTION - 2 || n >= 12) break;\n      push(blkHeading3(String(it.title || '').slice(0, 200)));\n      push(blkParaArtigoComFonte(it.title, it.url, it.source));\n      push(blkParaPlain((it.summary || '').slice(0, 400)));\n      push(blkDivider());\n      n += 1;\n    }\n  }\n\n  if (out.length < MAX_NOTION) {\n    push(blkParaPlain(`Fontes de dados: ${(rep.sources || []).join(', ') || '—'}`));\n  }\n  return out.slice(0, MAX_NOTION);\n}\n\nconst notion_children = buildNotionChildren(r);\n\nreturn [\n  {\n    json: {\n      html: body,\n      subject: `Relatório tech + LinkedIn ${r.date}`,\n      report_date: r.date,\n      slack_text: htmlToReadablePlain(body),\n      notion_children,\n    },\n  },\n];\n"
+      },
+      "id": "code-html",
+      "name": "HTML email + texto Slack",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{$vars.REPORT_EMAIL_FROM}}",
+        "toEmail": "={{$vars.REPORT_EMAIL_TO}}",
+        "subject": "={{ $json.subject }}",
+        "emailFormat": "html",
+        "html": "={{ $json.html }}",
+        "options": {}
+      },
+      "id": "email-send",
+      "name": "Enviar email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        960,
+        -120
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "REPLACE_SMTP",
+          "name": "SMTP corporativo"
+        }
+      },
+      "notes": "Microsoft 365: smtp.office365.com, porta 587, SSL/TLS DESLIGADO (STARTTLS). Na credencial SMTP: Disable STARTTLS = OFF. Erro 451 5.7.3 = STARTTLS obrigatório mas estava a ser ignorado. Alternativa: porta 465 com SSL/TLS ligado. Variáveis REPORT_EMAIL_FROM e REPORT_EMAIL_TO."
+    },
+    {
+      "parameters": {
+        "jsCode": "const dbId = ($vars.NOTION_DATABASE_ID || '').trim();\nif (!dbId) {\n  throw new Error('Variável n8n NOTION_DATABASE_ID em falta (ID da base Notion, UUID com hífenes).');\n}\nlet nameProp = ($vars.NOTION_DB_TITLE_COLUMN || $vars.NOTION_TITLE_PROPERTY || 'Name').trim();\nif (nameProp.toLowerCase() === 'linkedin') {\n  throw new Error(\n    'Variável errada: LinkedIn não é nome de coluna. NOTION_TITLE_PROPERTY / NOTION_DB_TITLE_COLUMN deve ser o nome da coluna Título na base (ex.: Name, Nome, Título). Remove ou corrige no n8n.',\n  );\n}\n\nconst item = $input.first().json;\nconst title = String(item.subject || `Relatório tech ${item.report_date || ''}`).slice(0, 2000);\n\nfunction chunks(str, max) {\n  const out = [];\n  for (let i = 0; i < str.length; i += max) out.push(str.slice(i, i + max));\n  return out.length ? out : [''];\n}\n\n/** Plain a partir de HTML quando não há notion_children (fallback). */\nfunction htmlToFallbackPlain(html) {\n  let t = String(html);\n  t = t.replace(/<\\/h1>/gi, '\\n\\n');\n  t = t.replace(/<\\/h2>/gi, '\\n\\n');\n  t = t.replace(/<\\/h3>/gi, '\\n\\n');\n  t = t.replace(/<\\/p>/gi, '\\n\\n');\n  t = t.replace(/<br\\s*\\/?>/gi, '\\n');\n  t = t.replace(/<\\/li>/gi, '\\n');\n  t = t.replace(/<\\/ul>|<\\/ol>|<\\/div>/gi, '\\n\\n');\n  t = t.replace(/<hr\\s*\\/?>/gi, '\\n\\n---\\n\\n');\n  t = t.replace(/<a\\s+[^>]*href=[\"']([^\"']+)[\"'][^>]*>([^<]*)<\\/a>/gi, '$2 ($1)');\n  t = t.replace(/<[^>]+>/g, '');\n  t = t.replace(/&nbsp;/g, ' ');\n  t = t.replace(/&amp;/g, '&');\n  t = t.replace(/&lt;/g, '<');\n  t = t.replace(/&gt;/g, '>');\n  t = t.replace(/\\n{3,}/g, '\\n\\n');\n  return t.trim();\n}\n\nlet children;\nif (Array.isArray(item.notion_children) && item.notion_children.length > 0) {\n  children = item.notion_children.slice(0, 100);\n} else {\n  let plain = String(item.slack_text || '');\n  if (plain.length < 80 && item.html) {\n    plain = htmlToFallbackPlain(item.html);\n  }\n  const parts = chunks(plain, 1900).slice(0, 99);\n  children = parts.map((text) => ({\n    object: 'block',\n    type: 'paragraph',\n    paragraph: { rich_text: [{ type: 'text', text: { content: text } }] },\n  }));\n}\n\nconst notion_body = {\n  parent: { database_id: dbId },\n  properties: {\n    [nameProp]: {\n      title: [{ type: 'text', text: { content: title } }],\n    },\n  },\n  children,\n};\n\nreturn [{ json: { notion_body } }];\n"
+      },
+      "id": "code-notion-prepare",
+      "name": "Preparar corpo Notion",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        260
+      ],
+      "notes": "Exige base Notion com coluna de título (nome em NOTION_TITLE_PROPERTY, padrão Name). Partilhar a base com a integração."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.notion.com/v1/pages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $vars.NOTION_TOKEN }}"
+            },
+            {
+              "name": "Notion-Version",
+              "value": "2022-06-28"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.notion_body) }}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "http-notion",
+      "name": "Notion — criar página",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1200,
+        260
+      ],
+      "notes": "NOTION_TOKEN = secret da integração (sem prefixo Bearer). notion.so/my-integrations"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$vars.SLACK_WEBHOOK_URL}}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ text: $json.slack_text.slice(0, 28000) }) }}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "http-slack",
+      "name": "Slack webhook (opcional)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        960,
+        120
+      ],
+      "disabled": true,
+      "notes": "Ativar após definir SLACK_WEBHOOK_URL nas variáveis."
+    }
+  ],
+  "connections": {
+    "Cron 07h30 UTC": {
+      "main": [
+        [
+          {
+            "node": "Data relatório (fim janela UTC)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Data relatório (fim janela UTC)": {
+      "main": [
+        [
+          {
+            "node": "GET report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET report": {
+      "main": [
+        [
+          {
+            "node": "HTML email + texto Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTML email + texto Slack": {
+      "main": [
+        [
+          {
+            "node": "Enviar email",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Slack webhook (opcional)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Preparar corpo Notion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar corpo Notion": {
+      "main": [
+        [
+          {
+            "node": "Notion — criar página",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsVersion": 1
+  }
+}

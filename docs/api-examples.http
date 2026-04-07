@@ -1,0 +1,48 @@
+### Variáveis (ajustar)
+@base = https://<functionAppName>.azurewebsites.net
+@key = <function_key>
+
+### check-id (GET)
+GET {{base}}/api/check-id?id=<sha256_hex_64>&source=openai&published_date=2026-04-05
+x-functions-key: {{key}}
+
+### check-id (POST)
+POST {{base}}/api/check-id
+Content-Type: application/json
+x-functions-key: {{key}}
+
+{
+  "id": "<sha256_hex_64>",
+  "source": "openai",
+  "published_date": "2026-04-05"
+}
+
+### Resposta esperada (check-id)
+# { "exists": false, "id": "<sha256>" }
+
+### process (POST)
+POST {{base}}/api/process
+Content-Type: application/json
+x-functions-key: {{key}}
+
+{
+  "date": "2026-04-05",
+  "lookback_days": 1,
+  "archive": false
+}
+
+### Resposta esperada (process)
+# {
+#   "ok": true,
+#   "date": "2026-04-05",
+#   "processed_count": 12,
+#   "report_path": "daily-report-2026-04-05.json",
+#   "processing_run_id": "..."
+# }
+
+### report (GET)
+GET {{base}}/api/report?date=2026-04-05
+x-functions-key: {{key}}
+
+### Resposta esperada (report)
+# Corpo = JSON do relatório (ver docs/schemas.md)

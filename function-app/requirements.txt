@@ -1,0 +1,9 @@
+# Deploy alvo: Python 3.11 (Azure Functions). Use Python 3.11 localmente (wheels pyarrow).
+azure-functions>=1.20.0,<2.0.0
+azure-storage-file-datalake>=12.14.0,<13.0.0
+azure-identity>=1.15.0,<2.0.0
+openai>=1.40.0,<2.0.0
+deltalake>=0.18.0,<0.22.0
+pyarrow>=14.0.1,<18.0.0
+pydantic>=2.6.0,<3.0.0
+tenacity>=8.2.0,<10.0.0

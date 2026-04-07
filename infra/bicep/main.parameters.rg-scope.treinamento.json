@@ -1,0 +1,14 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "projectPrefix": { "value": "tinsourcing" },
+    "environment": { "value": "dev" },
+    "location": { "value": "eastus2" },
+    "openAiDeploymentName": { "value": "gpt-4o" },
+    "openAiModelName": { "value": "gpt-4o" },
+    "openAiModelVersion": { "value": "2024-11-20" },
+    "deployRbacAssignments": { "value": false },
+    "useManagedIdentityDataPlane": { "value": false }
+  }
+}

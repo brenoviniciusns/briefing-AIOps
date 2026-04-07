@@ -1,0 +1,3 @@
+# Artefactos gerados por `az bicep build` (não versionar)
+main.json
+main.resourceGroup.json

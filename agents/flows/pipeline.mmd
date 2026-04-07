@@ -1,0 +1,46 @@
+%% Daily Tech Intelligence → LinkedIn (Azure + n8n)
+%% Renderizar no GitHub, Mermaid Live, ou extensão Mermaid no VS Code
+
+flowchart TB
+  subgraph sources["Fontes"]
+    RSS[RSS + HN API allowlist]
+  end
+
+  subgraph n8n1["n8n — Ingestão"]
+    CRON[Cron 07:00 UTC]
+    LOOP[Loop feeds]
+    FETCH[Fetch e parse]
+    NORM[Normalizar JSON]
+    W30[Filtro 30 dias UTC até ontem]
+    CHK[HTTP POST /check-id]
+    RAWUP[Upload RAW ADLS Gen2]
+    TRG[HTTP POST /process date+lookback]
+    CRON --> LOOP --> FETCH --> NORM --> W30 --> CHK --> RAWUP --> TRG
+  end
+
+  subgraph azure["Azure"]
+    ADLS_RAW[("Data Lake — /raw/…")]
+    ADLS_PROC[("Data Lake — /processed Delta")]
+    ADLS_REP[("Data Lake — /reports")]
+    FN[[Function App Python]]
+    OAI[(Azure OpenAI)]
+  end
+
+  subgraph n8n2["n8n — Entrega"]
+    GETREP[Obter relatório do dia]
+    HTML[HTML: LinkedIn top-3 + insights]
+    MAIL[E-mail]
+    SLACK[Slack / Teams]
+    GETREP --> HTML --> MAIL
+    HTML --> SLACK
+  end
+
+  RSS --> n8n1
+  CHK --> FN
+  RAWUP --> ADLS_RAW
+  TRG --> FN
+  FN --> ADLS_RAW
+  FN --> ADLS_PROC
+  FN --> ADLS_REP
+  FN --> OAI
+  ADLS_REP --> n8n2

@@ -1,0 +1,24 @@
+---
+description: Agente especialista em n8n (ingestão RSS, entrega e integração com Azure HTTP).
+globs:
+  - "n8n/**"
+  - "agents/prompts/01-ingestion.md"
+  - "agents/prompts/03-delivery.md"
+  - ".cursor/skills/**"
+alwaysApply: false
+---
+
+# Agente — n8n
+
+- Workflows importáveis em `n8n/workflows/*.json`; manter **credenciais fora** do JSON (usar credenciais n8n).
+- Ingestão: Cron → Code node (RSS + **Hacker News** API Firebase, allowlist em `allowlist_rss.yaml`) → filtro **30 dias UTC** (intervalo fechado terminando em **ontem**) → HTTP para Function → upload RAW (Azure Storage / HTTP assinado) → disparar `/process` com `date` = ontem e `lookback_days` = 30.
+- Entrega: obter relatório → HTML → Email; opcional Slack/Teams.
+- Tratar feeds RSS inconsistentes: falha por feed não deve impedir os outros; retry com backoff.
+- Documentar timezone do Cron no próprio workflow (notas) e alinhar com **UTC** para a janela de 30 dias (fim = ontem).
+
+## n8n-mcp (czlonkowski) e skills do projeto
+
+- Servidor MCP [n8n-mcp](https://github.com/czlonkowski/n8n-mcp): documentação de nós, templates, validação e (com `N8N_API_URL` + `N8N_API_KEY`) gestão de workflows via API REST. **Não confundir** com o MCP nativo da instância (`/mcp-server/http`): na Cloud costuma haver **429** e o Cursor tenta **SSE** (muitas vezes **404**). Preferir **`npx n8n-mcp`** em **stdio** no `mcp.json` global do Cursor.
+- `N8N_API_KEY` (Settings → API) é **opcional**: sem ela tens ferramentas de documentação/validação; com URL+Key, também CRUD de workflows. Node.js obrigatório; usar `MCP_MODE=stdio` e `DISABLE_CONSOLE_OUTPUT=true`. Projeto: ver `.cursor/mcp.json.example`.
+- Skills [n8n-skills](https://github.com/czlonkowski/n8n-skills) estão em `.cursor/skills/` (sete pastas com `SKILL.md`). Quando o MCP `n8n-mcp` estiver ativo, **ler e seguir** essas skills para expressões, padrões de workflow, validação e uso correto das ferramentas MCP.
+- Licença upstream das skills: `.cursor/skills/LICENSE.n8n-skills-upstream` (MIT, Romuald Członkowski).

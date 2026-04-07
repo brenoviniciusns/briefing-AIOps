@@ -1,0 +1,91 @@
+# Allowlist canónica: RSS + API permitidas na ingestão (sem scraping HTML).
+# Alinhamento: Azure / Microsoft, Databricks & lakehouse, MLOps, GenAI, governança de dados.
+# Janela de ingestão: dia civil anterior apenas, em UTC (ver .cursor/rules/daily-tech-pipeline.mdc).
+# Ao alterar feeds, sincronizar o Code node: n8n/snippets/ingestion-fetch-code.js → n8n/workflows/ingestion.json.
+
+version: 1
+updated: "2026-04-06"
+
+themes:
+  - azure-platform
+  - genai-agents
+  - ml-dl-frameworks
+  - data-engineering-lakehouse
+  - mlops-orchestration
+  - governance-trust
+
+rss_feeds:
+  # --- Já usados no pipeline original (empresas tech / IA) ---
+  - url: https://netflixtechblog.com/feed
+    source: netflix
+    focus: [engenharia, escala, dados]
+  - url: https://eng.uber.com/feed/
+    source: uber
+    focus: [engenharia, ML, dados]
+    alternates: [https://www.uber.com/blog/engineering/rss/]
+  - url: https://medium.com/feed/airbnb-engineering
+    source: airbnb
+    focus: [dados, ML]
+  - url: https://www.databricks.com/feed
+    source: databricks
+    focus: [lakehouse, spark, IA, engenharia de dados]
+    alternates: [https://www.databricks.com/blog/feed]
+  - url: https://openai.com/blog/rss.xml
+    source: openai
+    focus: [genai, pesquisa]
+  - url: https://huggingface.co/blog/feed.xml
+    source: huggingface
+    focus: [ML open-source, LLM, MLOps]
+  - url: https://blog.deeplearning.ai/feed/
+    source: deeplearning-ai
+    focus: [IA, ML, indústria]
+    alternates: [https://www.deeplearning.ai/the-batch/feed/]
+  - url: https://www.microsoft.com/releasecommunications/api/v2/azure/rss
+    source: azure-updates
+    focus: [Azure, roadmap, serviços]
+    notes: "Substitui a página /updates/feed/ que devolve HTML (não RSS)."
+
+  # --- Ecossistema Microsoft / Azure (oficial) ---
+  - url: https://azure.microsoft.com/en-us/blog/feed/
+    source: azure-blog
+    focus: [Azure, cloud, IA, dados]
+  - url: https://devblogs.microsoft.com/semantic-kernel/feed/
+    source: ms-semantic-kernel
+    focus: [GenAI, agentes, integração Azure/OpenAI]
+  - url: https://devblogs.microsoft.com/azure-sdk/feed/
+    source: azure-sdk-devblog
+    focus: [SDK Azure, automação, integração]
+  - url: https://www.microsoft.com/en-us/research/feed/
+    source: ms-research
+    focus: [pesquisa, IA, sistemas]
+
+  # --- Frameworks ML & infra adjacente ---
+  - url: https://pytorch.org/blog/feed.xml
+    source: pytorch
+    focus: [deep learning, pesquisa, produção]
+  - url: https://blog.tensorflow.org/feeds/posts/default?alt=rss
+    source: tensorflow-blog
+    focus: [deep learning, TFX, produção]
+  - url: https://blogs.nvidia.com/feed/
+    source: nvidia-blog
+    focus: [GPU, IA, HPC, dados]
+
+  # --- Governança & gestão de dados ---
+  - url: https://tdan.com/feed
+    source: tdan
+    focus: [governança, qualidade, arquitetura de dados]
+
+api_sources:
+  # API oficial Hacker News (Firebase); sem chave; uso moderado (ex.: até ~120 pedidos GET/dia no nó).
+  - id: hackernews-firebase
+    source: hackernews
+    kind: rest_json
+    base_url: https://hacker-news.firebaseio.com/v0
+    endpoints:
+      list_ids: /newstories.json
+      item: /item/{id}.json
+    docs: https://github.com/HackerNews/API
+    notes: >
+      Histórias com campo time (Unix) mapeadas para published_at UTC;
+      Ask HN / sem URL externa usam https://news.ycombinator.com/item?id={id}.
+      idempotência continua a ser SHA256(URL) do artigo ou página HN.

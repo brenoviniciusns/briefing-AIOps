@@ -1,0 +1,33 @@
+---
+description: Agente especialista em Azure (IaC, ADLS Gen2, Key Vault, OpenAI), com restrições de role Contributor.
+globs:
+  - "infra/**"
+  - "function-app/**"
+  - "docs/**"
+alwaysApply: false
+---
+
+# Agente — Azure Platform
+
+## Premissa: subscrição com role **Contributor** (sem Owner / User Access Administrator)
+
+Quem só tem **Contributor**:
+
+- **Não pode** criar `Microsoft.Authorization/roleAssignments` (atribuições RBAC) via Bicep/Terraform/CLI/Portal em recursos onde não tenha permissão explícita de atribuição. Na prática, **não deve** incluir no IaC recursos do tipo `roleAssignments` — o deployment falha ou fica bloqueado.
+- **Pode** criar e alterar a maioria dos recursos (Storage, Function App, Key Vault, Cognitive Services/OpenAI, etc.), **ler chaves** de Storage (`listKeys`) e configurar **Application settings** da Function com connection strings ou keys.
+- **Managed Identity + data plane OAuth** (ex.: `DefaultAzureCredential` a aceder ao Blob só com MI) **só funciona** depois de alguém com **Owner** ou **User Access Administrator** atribuir roles à MI (ex.: *Storage Blob Data Contributor* no storage, *Key Vault Secrets User* no Key Vault). Isso deve ser um **passo manual separado** ou outro pipeline executado por perfil elevado.
+
+### Padrões recomendados com Contributor
+
+1. **IaC sem RBAC**: módulos Bicep/Terraform **sem** `roleAssignments`; documentar num ficheiro em `docs/` (quando existir) as atribuições necessárias para um administrador aplicar.
+2. **Alternativa operacional até existir RBAC na MI**: Function e n8n usam **connection string** ou **account key** do Storage (e API key do OpenAI) via **Application Settings** ou **referências Key Vault** — desde que o Contributor consiga **criar/editar secrets** no Key Vault (depende das políticas da organização; por vezes é preciso um admin dar *Key Vault Secrets Officer* ao utilizador ou à pipeline).
+3. **OpenAI**: Contributor costuma conseguir **criar o recurso** e **obter keys**; deployments de modelo podem estar sujeitos a quota/política — validar na subscrição.
+4. **Key Vault**: preferir **RBAC do KV** alinhado com a equipa; se só Contributor for garantido, planear **política de secrets** com o administrador (quem grava o segredo inicial e quem a Function usa para ler).
+
+## Restante orientação (inalterada em intenção)
+
+- Preferir **Bicep** modular (storage, Key Vault, Function App, OpenAI), **sem** blocos de atribuição de roles, salvo quando o repositório for explicitamente usado por perfil com **User Access Administrator** ou **Owner**.
+- Storage: **hierarchical namespace** ativado para ADLS Gen2; contentores/prefixos alinhados a `raw`, `processed`, `reports` (e idempotência se aplicável).
+- Function App: **Python 3.11**; quando RBAC for aplicado por admin, MI com *Storage Blob Data Contributor* no storage certo e *Key Vault Secrets User* no KV.
+- Logging: Application Insights quando possível.
+- Nunca commitar secrets no repositório; usar Key Vault / App Settings configurados fora do código.
