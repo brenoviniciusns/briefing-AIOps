@@ -57,14 +57,15 @@ def raw_blob_path(source: str, article_id: str, published: date) -> str:
     y = published.year
     m = f"{published.month:02d}"
     d = f"{published.day:02d}"
-    return f"raw/year={y}/month={m}/day={d}/source={source}/{article_id}.json"
+    # Caminho relativo ao contentor `raw` (sem repetir o nome do contentor no path).
+    return f"year={y}/month={m}/day={d}/source={source}/{article_id}.json"
 
 
 def raw_prefix_for_date(published: date) -> str:
     y = published.year
     m = f"{published.month:02d}"
     d = f"{published.day:02d}"
-    return f"raw/year={y}/month={m}/day={d}/"
+    return f"year={y}/month={m}/day={d}/"
 
 
 def raw_article_exists(source: str, article_id: str, published: date) -> bool:

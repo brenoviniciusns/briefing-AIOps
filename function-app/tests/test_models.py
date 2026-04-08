@@ -42,7 +42,7 @@ def test_raw_article_accepts_extra_fields() -> None:
             "url": "https://example.com/p",
             "published_at": "2026-04-05T12:00:00Z",
             "ingested_at": "2026-04-06T07:00:00Z",
-            "blob_path": "raw/year=2026/...",
+            "blob_path": "year=2026/...",
         }
     )
     assert r.title == "T"

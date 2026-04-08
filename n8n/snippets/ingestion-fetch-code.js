@@ -228,7 +228,7 @@ async function pushArticle(out, it, start, end) {
       summary: '',
       ingested_at: new Date().toISOString(),
       published_date,
-      blob_path: `raw/year=${yy}/month=${mm}/day=${dd}/source=${it.source}/${id}.json`,
+      blob_path: `year=${yy}/month=${mm}/day=${dd}/source=${it.source}/${id}.json`,
     },
   });
 }

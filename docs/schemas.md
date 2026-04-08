@@ -6,7 +6,7 @@ Contexto e defaults atuais: [estado-atual-pipeline.md](estado-atual-pipeline.md)
 
 Caminho:
 
-`raw/year=YYYY/month=MM/day=DD/source=<source>/<id>.json`
+Contentor **`raw`**, caminho do blob (sem repetir o nome do contentor): `year=YYYY/month=MM/day=DD/source=<source>/<id>.json`
 
 Corpo JSON (um ficheiro por artigo):
 

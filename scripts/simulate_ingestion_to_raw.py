@@ -158,7 +158,7 @@ def main() -> int:
                         "url": link,
                         "published_at": pd.isoformat(),
                         "published_date": pd.date().isoformat(),
-                        "blob_path": f"raw/year={yy}/month={mm}/day={dd}/source={source}/{pid}.json",
+                        "blob_path": f"year={yy}/month={mm}/day={dd}/source={source}/{pid}.json",
                     }
                 )
         except Exception as e:
@@ -180,7 +180,7 @@ def main() -> int:
                     "url": link,
                     "published_at": pd.isoformat(),
                     "published_date": pd.date().isoformat(),
-                    "blob_path": f"raw/year={yy}/month={mm}/day={dd}/source={src}/{pid}.json",
+                    "blob_path": f"year={yy}/month={mm}/day={dd}/source={src}/{pid}.json",
                 }
             )
     except Exception as e:
@@ -208,7 +208,7 @@ def main() -> int:
                 "url": link,
                 "published_at": pd.isoformat(),
                 "published_date": pd.date().isoformat(),
-                "blob_path": f"raw/year={yy}/month={mm}/day={dd}/source={source}/{pid}.json",
+                "blob_path": f"year={yy}/month={mm}/day={dd}/source={source}/{pid}.json",
             }
         )
 
@@ -265,9 +265,9 @@ def main() -> int:
         "-o",
         "tsv",
     )
-    # blob_path no n8n = raw/year=.../... ; contentor = raw → nome do blob = year=.../...
+    # blob_path = caminho dentro do contentor `raw` (year=.../month=.../...), sem prefixo "raw/".
     tmp = json.dumps(body_obj, ensure_ascii=False)
-    open_path = art["blob_path"][4:] if art["blob_path"].startswith("raw/") else art["blob_path"]
+    open_path = art["blob_path"]
 
     # Upload via az storage blob (equiv. ao PUT HTTP do n8n)
     import tempfile

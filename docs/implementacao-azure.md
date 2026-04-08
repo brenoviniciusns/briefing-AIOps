@@ -125,7 +125,7 @@ O workflow de ingestão faz **PUT** no blob com SAS.
 
 2. Define nas variáveis do n8n (ver [deployment.md](deployment.md)):
 
-   - `BLOB_BASE_URL` = `https://<storage>.blob.core.windows.net` (**sem** `/raw` — o item `blob_path` já começa por `raw/...`)
+   - `BLOB_BASE_URL` = `https://<storage>.blob.core.windows.net` (**sem** `/raw`). O workflow monta o URL como `{BLOB_BASE_URL}/raw/{blob_path}` com `blob_path` = `year=…/month=…/day=…/source=…/{id}.json` (caminho **dentro** do contentor `raw`).
    - `BLOB_SAS_TOKEN` = token **sem** `?` no início
 
 ---

@@ -93,7 +93,7 @@ Use o header `x-functions-key` ou query `?code=` nas chamadas HTTP.
    - SMTP (ou outro canal) para o nó de email na entrega
 3. **Variáveis** (n8n Variables / ambiente), usadas como `$vars.*` nos fluxos:
    - `FUNCTION_APP_URL` — URL sem barra final (ex.: `https://<functionAppName>.azurewebsites.net`)
-   - `BLOB_BASE_URL` — `https://<storage>.blob.core.windows.net` (sem `/raw`; o path no workflow inclui `raw/...`)
+   - `BLOB_BASE_URL` — `https://<storage>.blob.core.windows.net` (sem `/raw`). O nó de PUT concatena `{BLOB_BASE_URL}/raw/{blob_path}` com `blob_path` = `year=…/month=…/day=…/source=…/{id}.json`.
    - `BLOB_SAS_TOKEN` — SAS de escrita no contentor `raw` (sem `?` inicial)
    - `REPORT_EMAIL_FROM` — remetente (deve coincidir com a conta SMTP autenticada, ex. `user@domain.com`)
    - `REPORT_EMAIL_TO` — destinatário do relatório

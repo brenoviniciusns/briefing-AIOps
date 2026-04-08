@@ -31,7 +31,7 @@ No mesmo RG existe também a storage `stinsourcing001dev`; o pipeline **Daily Te
 | Variável n8n | Valor |
 |--------------|--------|
 | `FUNCTION_APP_URL` | `https://tinsourcing-dev-func-uixu7snhv7bsw.azurewebsites.net` |
-| `BLOB_BASE_URL` | `https://tinsourcingdevstuixu7snh.blob.core.windows.net` (o `blob_path` do workflow já começa por `raw/year=…`, ou seja, contentor **`raw`**) |
+| `BLOB_BASE_URL` | `https://tinsourcingdevstuixu7snh.blob.core.windows.net` — URL final = `{BLOB_BASE_URL}/raw/{blob_path}` com `blob_path` = `year=…/month=…/day=…/source=…/{id}.json` (contentor **`raw`**) |
 | `BLOB_SAS_TOKEN` | token SAS (sem `?`) com permissão de escrita no contentor `raw`; **não** commitar |
 
 ---
@@ -184,12 +184,12 @@ Checklist manual (n8n UI ou API):
 | 3.1 | Workflow de ingestão **ativo**; cron 07:00 UTC (ou equivalente documentado). |
 | 3.2 | Variáveis n8n: `FUNCTION_APP_URL` = `https://tinsourcing-dev-func-uixu7snhv7bsw.azurewebsites.net`; `BLOB_BASE_URL` = `https://tinsourcingdevstuixu7snh.blob.core.windows.net`; `BLOB_SAS_TOKEN` = SAS do contentor `raw` (sem `?`). |
 | 3.3 | Credencial HTTP com `x-functions-key` da Function `tinsourcing-dev-func-uixu7snhv7bsw` (a mesma key usada em T2). |
-| 3.4 | URL final do PUT: `{BLOB_BASE_URL}/{blob_path}?{BLOB_SAS_TOKEN}` com `blob_path` = `raw/year=…/month=…/day=…/source=…/{id}.json` (primeiro segmento = nome do contentor **`raw`**). |
+| 3.4 | URL final do PUT: `https://<storage>.blob.core.windows.net/raw/{blob_path}?{SAS}` com `blob_path` = `year=…/month=…/day=…/source=…/{id}.json` (sem prefixo `raw/` no `blob_path`; o contentor é o segmento **`raw`** no URL). |
 
 **Portão T3:**
 
 - Após execução (manual ou agendada), existe pelo menos um blob em  
-  `raw/year=YYYY/month=MM/day=DD/source=<fonte>/<id>.json` para um dia onde os feeds tenham itens em D-1 UTC **ou** após upload de teste.
+  `year=YYYY/month=MM/day=DD/source=<fonte>/<id>.json` (dentro do contentor `raw`) para um dia onde os feeds tenham itens em D-1 UTC **ou** após upload de teste.
 - Reexecução: para o mesmo artigo, `check-id` deve devolver `exists: true` e o fluxo não deve recriar RAW indevidamente.
 
 ---
