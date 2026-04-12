@@ -1,6 +1,10 @@
-# Briefing AIOps — Daily Tech Intelligence Pipeline
+# briefing-AIOps usando n8n
+
+**Daily Tech Intelligence Pipeline** — ingestão e entrega com **n8n**, Azure Functions (Python), Azure Data Lake e Azure OpenAI.
 
 Pipeline **RSS/API → Azure Data Lake → Azure Functions (Python) + Azure OpenAI → n8n** (e-mail, Notion, Slack opcional). Relatórios diários com foco **D-1 UTC**, conteúdo **pt-BR** e sugestões **LinkedIn** (3 ganchos + 1 tema detalhado).
+
+**Nome no GitHub (URL):** `briefing-AIOps-usando-n8n` → [github.com/brenoviniciusns/briefing-AIOps-usando-n8n](https://github.com/brenoviniciusns/briefing-AIOps-usando-n8n). Renomeia em *Settings → General → Repository name*; depois no clone local: `git remote set-url origin https://github.com/brenoviniciusns/briefing-AIOps-usando-n8n.git`.
 
 ## Início rápido
 
